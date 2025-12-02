@@ -3,499 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MBTI 16가지 유형의 특성</title>
+    <title>MBTI Interactive PDF Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        // PDF.js 워커 설정
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     <style>
-        :root {
-            --primary-color: #4a90e2;
-            --bg-color: #f9f9f9;
-            --card-bg: #ffffff;
-            --text-color: #333;
-        }
-
         body {
-            font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: #f0f0f0;
             margin: 0;
-            padding: 0;
-            line-height: 1.6;
-        }
-
-        header {
-            background-color: var(--card-bg);
-            padding: 20px;
-            text-align: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            margin-bottom: 20px;
-        }
-
-        h1 { margin: 0; color: var(--primary-color); }
-        h2 { border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-top: 40px;}
-
-        /* --- 4x4 GRID NAVIGATION (Page 2) --- */
-        .container {
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .grid-nav {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 50px;
-        }
-
-        .grid-item {
-            background: white;
-            border-radius: 15px;
-            padding: 15px 5px;
-            text-align: center;
-            cursor: pointer;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            transition: transform 0.2s;
-            text-decoration: none;
-            color: inherit;
             display: flex;
             flex-direction: column;
             align-items: center;
+            font-family: sans-serif;
         }
 
-        /* The Head/Icon Placeholder */
-        .char-head {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            background-color: #ddd;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 12px;
-            color: #555;
-            /* Placeholder graphic logic */
-            background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-        }
-        
-        /* If you have real images, replace the background logic above with:
-           background-image: url('path-to-your-image.png');
-           background-size: cover; 
-        */
-
-        .type-name {
-            font-weight: 900;
+        #loader {
+            margin-top: 50px;
             font-size: 1.2rem;
-            color: var(--primary-color);
+            color: #555;
         }
 
-        /* --- INTERACTION: WIGGLE ANIMATION --- */
+        /* --- 2페이지 (그리드 메뉴) 스타일 --- */
+        #grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); /* 4열 */
+            gap: 10px;
+            max-width: 1000px;
+            width: 95%;
+            margin: 20px 0;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border-radius: 10px;
+            display: none; /* 로딩 전 숨김 */
+        }
+
+        .grid-cell {
+            position: relative;
+            cursor: pointer;
+            overflow: hidden;
+            border-radius: 8px;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .grid-cell canvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* 갸우뚱 애니메이션 */
         @keyframes wiggle {
             0% { transform: rotate(0deg); }
-            25% { transform: rotate(-15deg); }
+            25% { transform: rotate(-5deg); }
             50% { transform: rotate(0deg); }
-            75% { transform: rotate(15deg); }
+            75% { transform: rotate(5deg); }
             100% { transform: rotate(0deg); }
         }
 
-        .grid-item:hover .char-head {
+        .grid-cell:hover {
             animation: wiggle 0.4s ease-in-out infinite;
+            z-index: 10;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
         }
 
-        .grid-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
-        }
-
-        /* --- DETAIL SECTIONS --- */
-        .detail-section {
-            background: white;
-            border-radius: 20px;
-            padding: 30px;
-            margin-bottom: 30px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            scroll-margin-top: 20px; /* Offset for smooth scroll landing */
-        }
-
-        .detail-header {
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        /* --- 상세 페이지 (3~18페이지) 스타일 --- */
+        .page-container {
+            max-width: 1000px;
+            width: 95%;
             margin-bottom: 20px;
-        }
-
-        .detail-title {
-            font-size: 2rem;
-            font-weight: bold;
-            color: var(--primary-color);
-        }
-
-        .nickname {
-            background-color: #eff6ff;
-            color: #1d4ed8;
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .keywords {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 20px;
-        }
-
-        .keyword {
-            border: 1px solid #ddd;
-            padding: 4px 12px;
-            border-radius: 15px;
-            font-size: 0.85rem;
-            color: #666;
-        }
-
-        .content-block h3 {
-            color: #444;
-            font-size: 1.1rem;
-            margin-bottom: 8px;
-            border-left: 4px solid var(--primary-color);
-            padding-left: 10px;
-        }
-
-        .content-block p {
-            margin-bottom: 20px;
-            color: #555;
-            text-align: justify;
-        }
-
-        .back-btn {
-            display: inline-block;
-            margin-top: 10px;
-            padding: 8px 16px;
-            background-color: #eee;
-            color: #555;
-            text-decoration: none;
-            border-radius: 5px;
-            font-size: 0.8rem;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
         
-        .back-btn:hover {
-            background-color: #ddd;
+        .page-container canvas {
+            width: 100%;
+            height: auto;
+            display: block;
         }
 
-        /* Responsive */
-        @media (max-width: 600px) {
-            .grid-nav {
-                grid-template-columns: repeat(2, 1fr);
-            }
+        /* 상단 이동 버튼 */
+        .top-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background-color: #333;
+            color: white;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            font-weight: bold;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+            z-index: 100;
         }
+        .top-btn:hover { opacity: 1; }
+
     </style>
 </head>
 <body>
 
-<header>
-    <h1>MBTI 16가지 성격 유형 도표</h1>
-    <p>캐릭터를 클릭하면 상세 페이지로 이동합니다.</p>
-</header>
+    <div id="loader">PDF 파일을 불러오는 중입니다...<br><small>(로컬 서버 환경인지 확인해주세요)</small></div>
 
-<div class="container">
-    <div class="grid-nav">
-        <a href="#istj" class="grid-item"><div class="char-head" style="background-color:#e8f5e9;">🐢</div><span class="type-name">ISTJ</span></a>
-        <a href="#isfj" class="grid-item"><div class="char-head" style="background-color:#e8f5e9;">🐨</div><span class="type-name">ISFJ</span></a>
-        <a href="#infj" class="grid-item"><div class="char-head" style="background-color:#fff3e0;">🦌</div><span class="type-name">INFJ</span></a>
-        <a href="#intj" class="grid-item"><div class="char-head" style="background-color:#fff3e0;">🐯</div><span class="type-name">INTJ</span></a>
-        
-        <a href="#istp" class="grid-item"><div class="char-head" style="background-color:#e3f2fd;">🦦</div><span class="type-name">ISTP</span></a>
-        <a href="#isfp" class="grid-item"><div class="char-head" style="background-color:#fce4ec;">🐑</div><span class="type-name">ISFP</span></a>
-        <a href="#infp" class="grid-item"><div class="char-head" style="background-color:#fce4ec;">🦆</div><span class="type-name">INFP</span></a>
-        <a href="#intp" class="grid-item"><div class="char-head" style="background-color:#e3f2fd;">🦉</div><span class="type-name">INTP</span></a>
+    <div id="grid-container"></div>
 
-        <a href="#estp" class="grid-item"><div class="char-head" style="background-color:#f1f8e9;">🐆</div><span class="type-name">ESTP</span></a>
-        <a href="#esfp" class="grid-item"><div class="char-head" style="background-color:#f1f8e9;">🐧</div><span class="type-name">ESFP</span></a>
-        <a href="#enfp" class="grid-item"><div class="char-head" style="background-color:#fff8e1;">🐤</div><span class="type-name">ENFP</span></a>
-        <a href="#entp" class="grid-item"><div class="char-head" style="background-color:#fff8e1;">🦊</div><span class="type-name">ENTP</span></a>
+    <div id="content-area"></div>
 
-        <a href="#estj" class="grid-item"><div class="char-head" style="background-color:#e3f2fd;">🦁</div><span class="type-name">ESTJ</span></a>
-        <a href="#esfj" class="grid-item"><div class="char-head" style="background-color:#ffebee;">🦩</div><span class="type-name">ESFJ</span></a>
-        <a href="#enfj" class="grid-item"><div class="char-head" style="background-color:#ffebee;">🦒</div><span class="type-name">ENFJ</span></a>
-        <a href="#entj" class="grid-item"><div class="char-head" style="background-color:#e3f2fd;">🦅</div><span class="type-name">ENTJ</span></a>
-    </div>
+    <a href="#" class="top-btn">▲</a>
 
-    <hr>
+    <script>
+        // PDF 파일 경로 (같은 폴더에 있어야 함)
+        const url = 'MBTI 16가지 유형의 특성.pdf';
 
-    <div id="istj" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ISTJ</span>
-            <span class="nickname">세상의 소금형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">신중함</span><span class="keyword">정확성</span><span class="keyword">책임감</span><span class="keyword">조직력</span><span class="keyword">체계적</span><span class="keyword">실질적</span><span class="keyword">보수적</span><span class="keyword">관례적</span><span class="keyword">인내심</span><span class="keyword">일관성</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>신중하고 강한 책임감을 바탕으로 모든 일을 체계적으로 접근하는 ISTJ는 보수적이면서도 뛰어난 인내심을 발휘합니다. 정확성과 탁월한 조직력으로 실질적인 결과를 만들어내며, 관례를 존중하고 일관성 있는 행동으로 주변 사람들에게 안정감과 신뢰를 제공하는 믿음직한 성격입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'세상의 소금형'이라는 별명은 소금이 음식의 맛을 내고 보존하듯, ISTJ가 사회의 기반을 이루는 핵심적 역할을 한다는 의미입니다. 한번 시작한 일은 끝까지 해내는 책임감과 신뢰할 수 있는 성격으로 조직과 사회의 안정성을 유지하며, 묵묵히 자신의 역할을 다하는 소중한 존재라는 뜻을 담고 있습니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+        // --- [설정] 2페이지 자르기 좌표 조정 ---
+        // PDF 2페이지 내에서 그리드가 시작되는 위치를 비율(0.0 ~ 1.0)로 조정합니다.
+        // 만약 캐릭터 얼굴이 잘린다면 이 값들을 조금씩 수정하세요.
+        const CROP_SETTINGS = {
+            marginTop: 0.15,    // 위쪽 여백 (제목 등 제외)
+            marginBottom: 0.10, // 아래쪽 여백 (페이지 번호 등 제외)
+            marginLeft: 0.05,   // 왼쪽 여백
+            marginRight: 0.05   // 오른쪽 여백
+        };
 
-    <div id="isfj" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ISFJ</span>
-            <span class="nickname">임금 뒤편의 권력형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">온화함</span><span class="keyword">협조적</span><span class="keyword">봉사정신</span><span class="keyword">헌신적</span><span class="keyword">인내심</span><span class="keyword">침착함</span><span class="keyword">세심함</span><span class="keyword">신뢰성</span><span class="keyword">온정적</span><span class="keyword">배려심</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>온화하고 협조적인 성품으로 강한 봉사정신을 바탕으로 세심하고 온정적인 관계를 만드는 ISFJ는 헌신적이며 뛰어난 인내심과 침착함을 보여줍니다. 높은 신뢰성과 깊은 배려심으로 다른 사람들의 필요를 민감하게 파악하고 지원하며, 조용하지만 꾸준한 노력으로 주변 사람들에게 안정감과 따뜻함을 제공하는 든든한 지지자 역할을 하는 성격입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'임금 뒤편의 권력형'이라는 별명은 성실하고 온화하며 협조를 잘하는 성격으로 겉으로 드러나지는 않지만 뒤에서 묵묵히 지원하며 조직의 중요한 역할을 담당한다는 의미입니다. 마치 왕을 뒤에서 보좌하는 충신처럼 자신을 내세우지 않으면서도 실질적으로 큰 영향력을 행사하며, 조직의 안정과 발전을 위해 헌신하는 숨은 공로자의 모습을 나타냅니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+        const gridContainer = document.getElementById('grid-container');
+        const contentArea = document.getElementById('content-area');
+        const loader = document.getElementById('loader');
 
-    <div id="infj" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">INFJ</span>
-            <span class="nickname">예언자형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">통찰력</span><span class="keyword">비전</span><span class="keyword">창의적</span><span class="keyword">이상주의</span><span class="keyword">직관적</span><span class="keyword">공감능력</span><span class="keyword">깊이</span><span class="keyword">신념</span><span class="keyword">영감</span><span class="keyword">독창성</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>뛰어난 통찰력과 창의적 사고를 바탕으로 이상주의적이면서도 직관적인 공감능력을 발휘하는 INFJ는 명확한 비전과 깊이 있는 사고로 강한 신념을 가지고 살아갑니다. 타인에게 영감을 주는 독창성과 미래를 내다보는 예지력으로 복잡한 인간관계와 사회 현상을 꿰뚫어 보며, 조용하지만 강력한 영향력으로 세상을 더 나은 방향으로 이끌어가려는 의지를 가진 성격입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'예언자형'이라는 별명은 사람과 관련된 것에 통찰력이 뛰어나며 미래를 내다보는 비전과 깊은 공감 능력을 가진 영감의 제공자라는 의미에서 나왔습니다. 고대의 예언자들이 그러했듯이 현재를 넘어 미래를 바라보며, 인간의 본성과 사회의 흐름을 꿰뚫는 혜안을 가지고 있으며, 자신의 통찰을 바탕으로 타인과 사회에 의미 있는 메시지와 방향성을 제시하는 지혜로운 안내자의 역할을 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+        // PDF 로드 시작
+        pdfjsLib.getDocument(url).promise.then(async function(pdf) {
+            loader.style.display = 'none';
+            gridContainer.style.display = 'grid';
 
-    <div id="intj" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">INTJ</span>
-            <span class="nickname">과학자형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">독창성</span><span class="keyword">결단력</span><span class="keyword">논리적</span><span class="keyword">분석력</span><span class="keyword">전략적</span><span class="keyword">완벽주의</span><span class="keyword">비전</span><span class="keyword">체계적</span><span class="keyword">독립적</span><span class="keyword">미래지향</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>독창적이고 논리적인 사고로 전략적 계획을 수립하는 INTJ는 명확한 비전과 독립적 성향으로 강한 결단력을 보여줍니다. 뛰어난 분석력과 완벽주의적 태도로 체계적으로 목표를 달성하며, 미래지향적 사고로 혁신적인 아이디어를 현실로 구현합니다. 복잡한 문제를 논리적으로 해결하고 장기적 관점에서 전략을 수립하는 천부적인 마스터마인드입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'과학자형'이라는 별명은 전체를 조합하여 비전을 제시하고 논리적이고 체계적으로 복잡한 문제를 분석하여 해결하는 특성에서 유래되었습니다. 과학자가 가설을 세우고 검증하며 새로운 이론을 정립하듯, INTJ는 독창적인 아이디어를 논리적으로 발전시키고 체계적으로 실행하여 혁신적인 결과를 만들어내는 전략적 사고자를 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+            // 1. PAGE 2 처리 (그리드 자르기)
+            await renderGridPage(pdf, 2);
 
-    <div id="istp" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ISTP</span>
-            <span class="nickname">백과사전형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">논리적</span><span class="keyword">조용함</span><span class="keyword">분석적</span><span class="keyword">호기심</span><span class="keyword">독립적</span><span class="keyword">객관적</span><span class="keyword">실용적</span><span class="keyword">손재주</span><span class="keyword">적응력</span><span class="keyword">위기대응</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>논리적이고 분석적인 사고로 복잡한 문제를 해결하는 ISTP는 독립적이면서도 실용적인 접근을 선호합니다. 뛰어난 적응력과 조용한 관찰력을 바탕으로 강한 호기심을 보이며, 객관적 판단과 탁월한 손재주로 다양한 상황에 대응합니다. 특히 위기 상황에서 침착하게 대응하는 능력이 뛰어나 주변 사람들에게 든든한 지원자 역할을 합니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'백과사전형'이라는 별명은 다양한 분야에 대한 해박한 지식과 실용적 기술을 보유한 만능 해결사의 모습에서 유래되었습니다. 논리적이고 뛰어난 상황 적응력을 바탕으로 어떤 문제든 침착하게 분석하고 해결해내는 능력이 마치 모든 지식이 담긴 백과사전처럼 신뢰할 수 있고 유용하다는 의미를 담고 있습니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+            // 2. PAGE 3 ~ 18 처리 (통이미지 렌더링)
+            // PDF 페이지 3 -> 상세페이지 ID: page3
+            for (let i = 3; i <= 18; i++) { // 실제 PDF 페이지 범위
+                if (i > pdf.numPages) break;
+                await renderFullPage(pdf, i);
+            }
 
-    <div id="isfp" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ISFP</span>
-            <span class="nickname">성인군자형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">따뜻한</span><span class="keyword">적응력</span><span class="keyword">겸손함</span><span class="keyword">개인적</span><span class="keyword">예술적</span><span class="keyword">평화로움</span><span class="keyword">이상주의</span><span class="keyword">동정심</span><span class="keyword">민감함</span><span class="keyword">가치중시</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>따뜻하고 겸손한 마음으로 예술적 감성과 이상주의적 성향을 가진 ISFP는 깊은 동정심과 뛰어난 적응력을 보여줍니다. 개인적이면서도 평화로운 성격으로 민감하게 주변을 관찰하며 자신만의 가치를 중시하는 성격입니다. 강요하지 않으면서도 진실된 마음으로 타인을 이해하고 수용하며, 조용한 카리스마와 내면의 깊이로 주변에 긍정적 영향을 미치는 온화한 이상주의자입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'성인군자형'이라는 별명은 따뜻한 감성을 가지고 있는 겸손한 사람들로서 자신만의 확고한 가치관과 원칙을 바탕으로 살아가는 온화한 이상주의자의 모습에서 나왔습니다. 성인군자처럼 덕을 쌓고 타인을 배려하며, 자신을 내세우지 않으면서도 높은 도덕적 기준을 가지고 살아가는 인격자의 모습을 의미하며, 진정성과 순수함으로 존경받는 인물상을 나타냅니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+        }).catch(function(error) {
+            console.error('Error:', error);
+            loader.innerHTML = "오류 발생: " + error.message + "<br>파일이 같은 폴더에 있는지, 로컬 서버(Live Server)를 사용 중인지 확인하세요.";
+        });
 
-    <div id="infp" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">INFP</span>
-            <span class="nickname">잔다르크형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">이상주의</span><span class="keyword">개인적</span><span class="keyword">가치중시</span><span class="keyword">신념</span><span class="keyword">성실함</span><span class="keyword">적응력</span><span class="keyword">완벽주의</span><span class="keyword">의미추구</span><span class="keyword">창의적</span><span class="keyword">독립적</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>이상주의적이면서도 자신만의 가치를 중시하며 강한 신념을 바탕으로 살아가는 INFP는 완벽주의적 성향과 창의적 사고를 겸비한 성격입니다. 개인적이면서도 성실한 태도로 뛰어난 적응력을 보이며, 삶의 의미를 추구하고 독립적으로 자신의 길을 걸어갑니다. 내면의 깊은 감정과 이상을 바탕으로 세상을 더 나은 곳으로 만들고자 하는 열정을 가진 조용한 혁명가입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'잔다르크형'이라는 별명은 이상적인 세상을 만들어가는 사람들로서 자신의 신념과 가치관을 위해 헌신하는 용기 있는 이상주의자라는 의미에서 유래되었습니다. 프랑스의 여성 영웅 잔다르크처럼 자신이 믿는 가치와 대의를 위해 굳건히 나아가며, 불의에 맞서고 세상의 변화를 추구하는 강인한 내면의 힘과 순수한 열정을 가진 성격을 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+        // 기능 1: 2페이지를 로드해서 16등분 캔버스로 자르는 함수
+        async function renderGridPage(pdf, pageNum) {
+            const page = await pdf.getPage(pageNum);
+            const scale = 2.0; // 고해상도를 위해 2배 확대
+            const viewport = page.getViewport({ scale: scale });
 
-    <div id="intp" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">INTP</span>
-            <span class="nickname">아이디어 뱅크형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">논리적</span><span class="keyword">독립적</span><span class="keyword">분석적</span><span class="keyword">호기심</span><span class="keyword">객관적</span><span class="keyword">원리중시</span><span class="keyword">비판적</span><span class="keyword">창의적</span><span class="keyword">이론적</span><span class="keyword">내성적</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>논리적이고 분석적인 사고로 객관적 평가와 비판적 시각을 가진 INTP는 이론적이면서도 독립적인 성향으로 강한 호기심을 보여줍니다. 원리를 중시하고 창의적인 아이디어를 만들어내며, 내성적이지만 깊이 있는 사고력을 발휘합니다. 복잡한 개념과 추상적 이론을 분석하고 통합하여 새로운 통찰을 제시하는 뛰어난 전략가이자 이론가입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'아이디어 뱅크형'이라는 별명은 비평적 관점을 가지고 뛰어난 전략을 수립하며 끊임없이 새로운 아이디어와 이론을 생성하는 특성에서 유래되었습니다. 마치 은행에 자산이 쌓이듯 수많은 창의적 아이디어와 독창적 개념을 축적하고 있으며, 필요할 때 이를 꺼내 논리적으로 발전시키고 적용하는 지적 자원의 보고(寶庫)와 같은 존재를 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+            // 임시 캔버스에 전체 페이지 그리기
+            const tempCanvas = document.createElement('canvas');
+            const context = tempCanvas.getContext('2d');
+            tempCanvas.width = viewport.width;
+            tempCanvas.height = viewport.height;
 
-    <div id="estp" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ESTP</span>
-            <span class="nickname">수완좋은 활동가형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">활동적</span><span class="keyword">사교적</span><span class="keyword">문제해결</span><span class="keyword">적응력</span><span class="keyword">현실적</span><span class="keyword">에너지</span><span class="keyword">즉흥적</span><span class="keyword">실용주의</span><span class="keyword">관대함</span><span class="keyword">유연성</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>활동적이고 사교적인 에너지로 현실적이면서도 즉흥적인 삶을 살아가는 ESTP는 관대하고 뛰어난 문제 해결 능력을 발휘합니다. 탁월한 적응력과 넘치는 에너지로 어떤 상황에도 유연하게 대처하며, 실용주의적 접근으로 실질적인 결과를 만들어냅니다. 현재 순간을 즐기며 주변 사람들에게 활력과 긍정적인 영향을 미치는 매력적인 성격입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'수완좋은 활동가형'이라는 별명은 친구, 운동, 음식 등 다양한 활동을 통해 사람들과 활발하게 어울리는 특성에서 나왔습니다. 현실적 문제 해결에 뛰어난 능력을 발휘하면서도 항상 사람들과 함께하기를 좋아하는 활동적인 성격으로, 어디서든 중심이 되어 분위기를 밝게 만들고 사람들을 하나로 모으는 천부적인 사교 능력을 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
 
-    <div id="esfp" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ESFP</span>
-            <span class="nickname">사교적인 유형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">우호적</span><span class="keyword">분위기메이커</span><span class="keyword">열정적</span><span class="keyword">친절함</span><span class="keyword">즉흥적</span><span class="keyword">낙관적</span><span class="keyword">관대함</span><span class="keyword">재치있음</span><span class="keyword">활발함</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>우호적이고 타고난 분위기메이커인 ESFP는 열정적이면서도 즉흥적인 매력으로 사교적인 에너지를 발산합니다. 친절하고 낙관적인 성격에 관대한 마음과 재치 있는 유머감각으로 활발한 분위기를 조성하며, 현재를 즐기고 사람들과 함께하는 것을 가장 큰 기쁨으로 여깁니다. 어디서든 밝고 긍정적인 에너지로 주변 사람들을 즐겁게 만드는 천부적인 엔터테이너입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'사교적인 유형'이라는 별명은 분위기를 고조시키는 우호적인 성격으로 새롭고 재미있는 아이디어를 끊임없이 만들어내며 사람들을 즐겁게 하는 창의적 능력에서 유래되었습니다. 마치 새로운 재미와 즐거움을 발명해내는 것처럼 어떤 상황에서든 긍정적이고 활기찬 분위기를 만들어내며, 주변 사람들에게 기쁨과 에너지를 선사하는 천부적인 엔터테이너 기질을 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+            // 자르기 계산
+            const startX = viewport.width * CROP_SETTINGS.marginLeft;
+            const endX = viewport.width * (1 - CROP_SETTINGS.marginRight);
+            const startY = viewport.height * CROP_SETTINGS.marginTop;
+            const endY = viewport.height * (1 - CROP_SETTINGS.marginBottom);
 
-    <div id="enfp" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ENFP</span>
-            <span class="nickname">스파크형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">열정적</span><span class="keyword">창의적</span><span class="keyword">상상력</span><span class="keyword">가능성발견</span><span class="keyword">통찰력</span><span class="keyword">사교적</span><span class="keyword">에너지</span><span class="keyword">영감적</span><span class="keyword">새로움추구</span><span class="keyword">즉흥적</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>열정적이고 창의적인 에너지로 풍부한 상상력을 발휘하는 ENFP는 넘치는 에너지로 새로움을 추구하며 사람들의 가능성을 발견하는 능력이 뛰어납니다. 뛰어난 통찰력과 사교적 성향으로 타인에게 영감을 주며, 즉흥적이면서도 열정적으로 새로운 도전을 시도합니다. 긍정적이고 낙관적인 시각으로 세상을 바라보며, 주변 사람들에게 희망과 활력을 불어넣는 천부적인 동기부여자입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'스파크형'이라는 별명은 열정적으로 새로운 관계를 만들고 아이디어를 창출하며 주변에 에너지와 영감을 불꽃처럼 퍼뜨리는 특성에서 유래되었습니다. 마치 불꽃이 튀듯 순간적으로 빛나는 창의성과 열정으로 정적인 상황에 활기를 불어넣고, 사람들의 마음에 변화와 영감의 불씨를 지피는 역동적이고 에너지 넘치는 성격을 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+            const gridWidth = endX - startX;
+            const gridHeight = endY - startY;
+            
+            const cellWidth = gridWidth / 4;
+            const cellHeight = gridHeight / 4;
 
-    <div id="entp" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ENTP</span>
-            <span class="nickname">발명가형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">혁신적</span><span class="keyword">논쟁적</span><span class="keyword">창의적</span><span class="keyword">문제해결</span><span class="keyword">도전적</span><span class="keyword">열정적</span><span class="keyword">변화주도</span><span class="keyword">독창적</span><span class="keyword">다재다능</span><span class="keyword">융통성</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>혁신적이고 창의적인 사고로 도전을 즐기며 변화를 주도하는 ENTP는 다재다능한 재능과 논쟁을 즐기는 성향으로 탁월한 문제 해결 능력을 보여줍니다. 열정적이고 독창적인 아이디어로 상황에 융통성 있게 대처하며, 새로운 가능성을 탐색하고 혁신을 추구합니다. 지적 호기심이 강하고 다양한 분야에 관심을 가지며, 기존의 틀을 깨는 창의적 해결책을 제시하는 타고난 혁신가입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'발명가형'이라는 별명은 풍부한 상상력을 가지고 새로운 것에 도전하며 혁신적인 아이디어를 창출하는 특성에서 유래되었습니다. 마치 에디슨이 전구를 발명했듯이 기존에 없던 새로운 개념과 방법을 창조해내고, 문제를 독창적인 방식으로 해결하며, 끊임없이 혁신과 변화를 추구하는 창의적 개척자의 모습을 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+            // 16개 셀 생성 루프
+            // 순서: ISTJ(p3) -> ISFJ(p4) ...
+            let targetPage = 3; 
 
-    <div id="estj" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ESTJ</span>
-            <span class="nickname">사업가형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">조직적</span><span class="keyword">체계적</span><span class="keyword">현실적</span><span class="keyword">리더십</span><span class="keyword">결단력</span><span class="keyword">전통적</span><span class="keyword">책임감</span><span class="keyword">실무적</span><span class="keyword">효율성</span><span class="keyword">목표지향</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>조직적이고 현실적인 사고로 뛰어난 결단력과 강한 책임감을 바탕으로 모든 일을 효율적으로 처리하는 ESTJ는 체계적인 접근과 탁월한 리더십을 발휘합니다. 전통적 가치를 중시하면서도 실무적이고 목표 지향적인 성향으로 조직과 팀을 성공적으로 이끌어가며, 명확한 기준과 원칙을 바탕으로 일관되고 신뢰할 수 있는 결과를 만들어내는 천부적 관리자입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'사업가형'이라는 별명은 사무적, 실용적, 현실적으로 일을 처리하며 조직을 효율적으로 운영하는 천부적 관리자 기질에서 유래되었습니다. 목표를 설정하고 체계적으로 실행하여 성과를 창출하는 능력이 뛰어나며, 사업이나 조직 운영에 필요한 리더십과 실행력을 갖추고 있어 어떤 분야에서든 성공적인 결과를 만들어내는 경영자의 자질을 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+            for (let row = 0; row < 4; row++) {
+                for (let col = 0; col < 4; col++) {
+                    // 각 셀을 위한 작은 캔버스 생성
+                    const cellCanvas = document.createElement('canvas');
+                    cellCanvas.width = cellWidth;
+                    cellCanvas.height = cellHeight;
+                    const cellCtx = cellCanvas.getContext('2d');
 
-    <div id="esfj" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ESFJ</span>
-            <span class="nickname">친선도모형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">친절함</span><span class="keyword">봉사정신</span><span class="keyword">전통적</span><span class="keyword">책임감</span><span class="keyword">사교성</span><span class="keyword">동정심</span><span class="keyword">조화추구</span><span class="keyword">조직력</span><span class="keyword">협력적</span><span class="keyword">헌신적</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>친절하고 강한 봉사정신으로 뛰어난 사교성을 바탕으로 조화를 추구하는 ESFJ는 협력적이면서도 전통적 가치를 소중히 여기는 성격입니다. 강한 책임감과 깊은 동정심으로 탁월한 조직력을 발휘하며, 헌신적으로 타인을 돕고 지원합니다. 사람들 간의 관계를 중시하고 공동체의 화합과 발전을 위해 노력하며, 따뜻한 마음과 실용적 도움으로 사회의 윤활유 역할을 하는 성격입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'친선도모형'이라는 별명은 친절과 현실감을 바탕으로 타인에게 봉사하며 조화로운 인간관계를 만들어가는 특성에서 유래되었습니다. 사람들 사이의 친선과 우정을 도모하고 발전시키는 역할을 자연스럽게 맡으며, 갈등을 조정하고 화합을 이끌어내는 능력이 뛰어나 어떤 공동체에서든 없어서는 안 될 중요한 존재로서 사회적 결속과 협력을 증진시키는 역할을 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+                    // 임시 캔버스에서 해당 영역만 복사해오기
+                    const sourceX = startX + (col * cellWidth);
+                    const sourceY = startY + (row * cellHeight);
 
-    <div id="enfj" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ENFJ</span>
-            <span class="nickname">언변능숙형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">친절함</span><span class="keyword">봉사정신</span><span class="keyword">사교성</span><span class="keyword">전통적</span><span class="keyword">책임감</span><span class="keyword">동정심</span><span class="keyword">조화추구</span><span class="keyword">조직력</span><span class="keyword">협력적</span><span class="keyword">헌신적</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>깊은 동정심과 참을성을 바탕으로 조화를 중시하는 ENFJ는 뛰어난 리더십과 설득력으로 사람들을 이끌어갑니다. 탁월한 표현력과 비전 지향적 사고로 헌신적으로 타인의 성장을 도모하며, 사교적인 성격으로 사람들과 깊은 유대감을 형성합니다. 타인의 잠재력을 발견하고 실현시키는 능력이 뛰어나며, 공동체의 발전과 구성원들의 행복을 위해 헌신하는 천부적인 교육자이자 지도자입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'언변능숙형'이라는 별명은 타인의 성장을 도모하고 협동하며 사람들을 비전으로 이끌어가는 카리스마 있는 리더의 특성에서 나왔습니다. 단순히 명령하는 리더가 아니라 구성원들의 강점을 발견하고 계발하도록 돕는 촉진자이자 멘토로서, 사람들이 더 나은 자신이 될 수 있도록 영감을 주고 동기를 부여하며 함께 성장하는 진정한 의미의 지도자를 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+                    cellCtx.drawImage(
+                        tempCanvas, 
+                        sourceX, sourceY, cellWidth, cellHeight, // 원본 좌표 및 크기
+                        0, 0, cellWidth, cellHeight // 타겟 좌표 및 크기
+                    );
 
-    <div id="entj" class="detail-section">
-        <div class="detail-header">
-            <span class="type-name" style="font-size: 2.5rem;">ENTJ</span>
-            <span class="nickname">지도자형</span>
-        </div>
-        <div class="keywords">
-            <span class="keyword">리더십</span><span class="keyword">논리적</span><span class="keyword">체계적</span><span class="keyword">결과중시</span><span class="keyword">조직적</span><span class="keyword">효율적</span><span class="keyword">통솔력</span><span class="keyword">결단력</span><span class="keyword">장기계획</span><span class="keyword">비전제시</span>
-        </div>
-        <div class="content-block">
-            <h3>성격 특성</h3>
-            <p>타고난 리더십과 논리적 사고로 조직적이고 강력한 통솔력을 발휘하는 ENTJ는 장기 계획을 선호하며 체계적인 실행으로 결과를 중시합니다. 효율적이고 결단력 있는 의사결정으로 명확한 비전을 제시하며, 목표 달성을 위해 전략적으로 자원을 배치하고 사람들을 이끌어갑니다. 자신감 있고 활력적이며, 복잡한 상황을 단순화하여 실행 가능한 계획으로 만드는 천부적인 경영자입니다.</p>
-            <h3>별명의 의미</h3>
-            <p>'지도자형'이라는 별명은 비전을 가지고 사람들을 활력적으로 이끌어가며 설득력 있는 의사소통으로 조직을 효과적으로 관리하는 특성에서 유래되었습니다. 뛰어난 언변과 표현력으로 복잡한 개념을 명확하게 전달하고, 사람들을 동기부여하며 공동의 목표를 향해 이끌어가는 카리스마 있는 리더의 소통 능력을 의미합니다.</p>
-        </div>
-        <a href="#" class="back-btn">↑ 맨 위로</a>
-    </div>
+                    // 링크 감싸기 (A태그)
+                    const link = document.createElement('a');
+                    link.className = 'grid-cell';
+                    link.href = '#page-' + targetPage; // #page-3, #page-4 ...
+                    
+                    // 마지막 셀(P)인 경우 page 17이 아니라 18이거나 논리상 마지막 페이지로 매핑
+                    // 요청하신 내용은 A=3p, B=4p... P=18p(순서대로) 입니다.
+                    
+                    link.appendChild(cellCanvas);
+                    gridContainer.appendChild(link);
 
-</div>
+                    targetPage++;
+                }
+            }
+        }
 
+        // 기능 2: 페이지를 통째로 렌더링하는 함수 (상세 내용용)
+        async function renderFullPage(pdf, pageNum) {
+            const page = await pdf.getPage(pageNum);
+            const scale = 1.5; // 적당한 크기
+            const viewport = page.getViewport({ scale: scale });
+
+            const div = document.createElement('div');
+            div.className = 'page-container';
+            div.id = 'page-' + pageNum; // 앵커 링크용 ID (예: page-3)
+
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+
+            div.appendChild(canvas);
+            contentArea.appendChild(div);
+
+            await page.render({
+                canvasContext: context,
+                viewport: viewport
+            }).promise;
+        }
+    </script>
 </body>
 </html>
